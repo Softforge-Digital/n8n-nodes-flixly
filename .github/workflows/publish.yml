@@ -1,0 +1,53 @@
+# Publishes n8n-nodes-flixly to npm with provenance attestation
+# whenever a v* tag is pushed. n8n's verified-community-node program
+# requires provenance-signed publishes as of 2026-05-01.
+#
+# Setup before first run:
+#   1. Create an npm Granular Access Token at
+#      https://www.npmjs.com/settings/softforge/tokens
+#      Permissions: Read and Write for @flixly + n8n-nodes-flixly
+#      Bypass 2FA: ✅ ON
+#   2. Add it as a repo secret named NPM_TOKEN at
+#      https://github.com/Softforge-Digital/n8n-nodes-flixly/settings/secrets/actions
+#   3. Push a tag: `git tag v0.1.1 && git push origin v0.1.1`
+#   4. Workflow runs, publishes with provenance, surfaces on npm with a
+#      verified provenance badge linking back to this workflow run.
+
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Manual fallback in case a tag push doesn't fire the workflow.
+  workflow_dispatch:
+
+# Required for npm provenance attestation (sigstore-backed signing).
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Build + publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

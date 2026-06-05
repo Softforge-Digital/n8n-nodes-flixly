@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-flixly",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Flixly AI nodes for n8n — generate images, video, audio, and chat completions via the Flixly API.",
   "keywords": [
     "n8n-community-node-package",
