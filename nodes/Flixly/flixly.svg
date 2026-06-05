@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="flixly-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#flixly-grad)"/>
+  <path d="M22 18 L22 46 L28 46 L28 34 L40 34 L40 28 L28 28 L28 24 L42 24 L42 18 Z" fill="#ffffff"/>
+  <circle cx="46" cy="42" r="4" fill="#ffffff"/>
+</svg>
