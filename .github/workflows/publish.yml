@@ -81,5 +81,9 @@ jobs:
             echo "($NPMRC does not exist — nothing to strip)"
           fi
 
-      - name: Publish to npm with provenance (OIDC)
-        run: npm publish --provenance --access public
+      - name: Publish to npm with provenance (OIDC) — verbose
+        run: npm publish --provenance --access public --loglevel verbose
+        env:
+          # Some npm versions require NODE_AUTH_TOKEN to be unset
+          # explicitly (vs. empty string) before OIDC kicks in.
+          NODE_AUTH_TOKEN: ""
