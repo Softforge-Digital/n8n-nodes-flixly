@@ -9,11 +9,6 @@
 #
 # To cut a release:
 #   git tag v0.1.x -m "..." && git push origin v0.1.x
-#
-# The workflow runs, exchanges a short-lived OIDC token from GitHub
-# for an npm publish credential, and publishes with provenance
-# attestation. The published package gets a "Provenance" badge on
-# npmjs.com tying the release to this exact workflow run.
 
 name: Publish to npm
 
@@ -23,8 +18,6 @@ on:
       - "v*"
   workflow_dispatch:
 
-# id-token: write unlocks OIDC for npm publish — without it the
-# Trusted Publisher token exchange can't happen.
 permissions:
   contents: read
   id-token: write
@@ -37,21 +30,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # NOTE: we deliberately do NOT pass `registry-url` to setup-node.
-      # When that flag is set, setup-node writes ~/.npmrc with
-      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`. With no
-      # token set, the env var resolves to empty string, and npm tries
-      # to publish with an empty token → 404 "Not Found" before OIDC
-      # even gets a chance. Skipping registry-url leaves the default
-      # npm config in place, which lets npm 11's auto-OIDC detection
-      # kick in via the ACTIONS_ID_TOKEN_REQUEST_URL env var.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          registry-url: "https://registry.npmjs.org"
 
-      # Upgrade npm so we definitely have ≥11.5.1 (Trusted Publisher
-      # OIDC fully implemented).
+      # OIDC requires npm 11.5.1+ — Ubuntu's Node 20 ships an older bundled
+      # npm. Force the latest.
       - name: Upgrade npm
         run: |
           npm install -g npm@latest
@@ -62,6 +48,31 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Debug pre-publish state in case Trusted Publishing doesn't kick in.
+      - name: Show publish environment
+        run: |
+          echo "── npm version ──"
+          npm --version
+          echo "── ~/.npmrc ──"
+          cat ~/.npmrc 2>/dev/null || echo "(no user ~/.npmrc)"
+          echo "── ./.npmrc ──"
+          cat ./.npmrc 2>/dev/null || echo "(no project .npmrc)"
+          echo "── OIDC env vars present? ──"
+          [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ] && echo "ACTIONS_ID_TOKEN_REQUEST_URL: set" || echo "ACTIONS_ID_TOKEN_REQUEST_URL: MISSING"
+          [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ] && echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN: set" || echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN: MISSING"
+
+      # Explicitly clear the auth token line that setup-node writes — we
+      # don't want it in the file when relying on OIDC. We keep the
+      # registry URL because npm needs to know where to publish.
+      - name: Strip setup-node's empty-token line from ~/.npmrc
+        run: |
+          if [ -f ~/.npmrc ]; then
+            sed -i '/_authToken/d' ~/.npmrc
+            sed -i '/always-auth/d' ~/.npmrc
+            echo "── ~/.npmrc after strip ──"
+            cat ~/.npmrc
+          fi
 
       - name: Publish to npm with provenance (OIDC)
         run: npm publish --provenance --access public
