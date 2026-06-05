@@ -21,12 +21,10 @@ on:
   push:
     tags:
       - "v*"
-  # Manual fallback in case a tag push doesn't fire the workflow.
   workflow_dispatch:
 
-# id-token: write is what unlocks OIDC for npm publish — without it
-# the Trusted Publisher exchange can't happen and the publish would
-# fall back to needing a token (which we deliberately don't have).
+# id-token: write unlocks OIDC for npm publish — without it the
+# Trusted Publisher token exchange can't happen.
 permissions:
   contents: read
   id-token: write
@@ -39,33 +37,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # NOTE: we deliberately do NOT pass `registry-url` to setup-node.
+      # When that flag is set, setup-node writes ~/.npmrc with
+      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`. With no
+      # token set, the env var resolves to empty string, and npm tries
+      # to publish with an empty token → 404 "Not Found" before OIDC
+      # even gets a chance. Skipping registry-url leaves the default
+      # npm config in place, which lets npm 11's auto-OIDC detection
+      # kick in via the ACTIONS_ID_TOKEN_REQUEST_URL env var.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
 
-      # Upgrade npm to ensure OIDC / Trusted Publisher support.
-      # OIDC publish was introduced in npm 9.5; we want a recent
-      # version anyway so provenance + OIDC flags are well-tested.
+      # Upgrade npm so we definitely have ≥11.5.1 (Trusted Publisher
+      # OIDC fully implemented).
       - name: Upgrade npm
-        run: npm install -g npm@latest
+        run: |
+          npm install -g npm@latest
+          echo "npm version: $(npm --version)"
 
-      # --ignore-scripts skips native-addon postinstall steps. n8n-workflow
-      # transitively depends on isolated-vm (a C++ V8 sandbox) which fails
-      # to compile against recent V8 API changes. We don't need it at
-      # build time — tsc only reads .d.ts files. Runtime users of our
-      # plugin install n8n-workflow themselves and get isolated-vm via
-      # n8n's own install path, which uses prebuilt binaries.
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
       - name: Build
         run: npm run build
 
-      # No NODE_AUTH_TOKEN env — npm 11 detects the OIDC token from
-      # GitHub Actions automatically via ACTIONS_ID_TOKEN_REQUEST_URL.
-      # The Trusted Publisher config on npmjs.com authorizes this
-      # specific workflow file to publish.
-      - name: Publish to npm with provenance
+      - name: Publish to npm with provenance (OIDC)
         run: npm publish --provenance --access public
