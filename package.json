@@ -1,0 +1,59 @@
+{
+  "name": "n8n-nodes-flixly",
+  "version": "0.1.0",
+  "description": "Flixly AI nodes for n8n — generate images, video, audio, and chat completions via the Flixly API.",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "flixly",
+    "ai",
+    "image-generation",
+    "video-generation",
+    "chat"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Softforge-Digital/n8n-nodes-flixly#readme",
+  "author": {
+    "name": "Flixly",
+    "email": "support@flixly.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Softforge-Digital/n8n-nodes-flixly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Softforge-Digital/n8n-nodes-flixly/issues"
+  },
+  "engines": {
+    "node": ">=20.15"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && node scripts/copy-icons.mjs",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/FlixlyApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Flixly/Flixly.node.js",
+      "dist/nodes/Flixly/FlixlyTrigger.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "n8n-workflow": "^1.103.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
