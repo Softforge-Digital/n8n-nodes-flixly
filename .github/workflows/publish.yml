@@ -1,17 +1,19 @@
 # Publishes n8n-nodes-flixly to npm with provenance attestation
-# whenever a v* tag is pushed. n8n's verified-community-node program
-# requires provenance-signed publishes as of 2026-05-01.
+# whenever a v* tag is pushed. Uses npm Trusted Publishing (OIDC) —
+# no NPM_TOKEN secret required.
 #
-# Setup before first run:
-#   1. Create an npm Granular Access Token at
-#      https://www.npmjs.com/settings/softforge/tokens
-#      Permissions: Read and Write for @flixly + n8n-nodes-flixly
-#      Bypass 2FA: ✅ ON
-#   2. Add it as a repo secret named NPM_TOKEN at
-#      https://github.com/Softforge-Digital/n8n-nodes-flixly/settings/secrets/actions
-#   3. Push a tag: `git tag v0.1.1 && git push origin v0.1.1`
-#   4. Workflow runs, publishes with provenance, surfaces on npm with a
-#      verified provenance badge linking back to this workflow run.
+# Required setup (one-time, already done):
+#   1. https://www.npmjs.com/package/n8n-nodes-flixly/access →
+#      "Add trusted publisher" → GitHub Actions → Softforge-Digital /
+#      n8n-nodes-flixly / publish.yml / npm publish action allowed.
+#
+# To cut a release:
+#   git tag v0.1.x -m "..." && git push origin v0.1.x
+#
+# The workflow runs, exchanges a short-lived OIDC token from GitHub
+# for an npm publish credential, and publishes with provenance
+# attestation. The published package gets a "Provenance" badge on
+# npmjs.com tying the release to this exact workflow run.
 
 name: Publish to npm
 
@@ -22,7 +24,9 @@ on:
   # Manual fallback in case a tag push doesn't fire the workflow.
   workflow_dispatch:
 
-# Required for npm provenance attestation (sigstore-backed signing).
+# id-token: write is what unlocks OIDC for npm publish — without it
+# the Trusted Publisher exchange can't happen and the publish would
+# fall back to needing a token (which we deliberately don't have).
 permissions:
   contents: read
   id-token: write
@@ -41,13 +45,21 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
+      # Upgrade npm to ensure OIDC / Trusted Publisher support.
+      # OIDC publish was introduced in npm 9.5; we want a recent
+      # version anyway so provenance + OIDC flags are well-tested.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run build
 
+      # No NODE_AUTH_TOKEN env — npm 11 detects the OIDC token from
+      # GitHub Actions automatically via ACTIONS_ID_TOKEN_REQUEST_URL.
+      # The Trusted Publisher config on npmjs.com authorizes this
+      # specific workflow file to publish.
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
