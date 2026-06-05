@@ -51,8 +51,14 @@ jobs:
       - name: Upgrade npm
         run: npm install -g npm@latest
 
+      # --ignore-scripts skips native-addon postinstall steps. n8n-workflow
+      # transitively depends on isolated-vm (a C++ V8 sandbox) which fails
+      # to compile against recent V8 API changes. We don't need it at
+      # build time — tsc only reads .d.ts files. Runtime users of our
+      # plugin install n8n-workflow themselves and get isolated-vm via
+      # n8n's own install path, which uses prebuilt binaries.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build
         run: npm run build
