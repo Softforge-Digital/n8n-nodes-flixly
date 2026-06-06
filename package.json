@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-flixly",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Flixly AI nodes for n8n — generate images, video, audio, and chat completions via the Flixly API.",
   "keywords": [
     "n8n-community-node-package",
@@ -32,6 +32,8 @@
     "build": "tsc && node scripts/copy-icons.mjs",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
+    "lint": "eslint 'dist/**/*.js' 'package.json' --no-config-lookup --config eslint.config.mjs",
+    "lint:install": "npm install --save-dev --legacy-peer-deps @n8n/eslint-plugin-community-nodes @typescript-eslint/parser eslint@^9.29.0",
     "prepublishOnly": "npm run build"
   },
   "files": [
@@ -48,11 +50,8 @@
     ]
   },
   "devDependencies": {
-    "@n8n/eslint-plugin-community-nodes": "^0.18.0",
     "@types/lodash": "^4.17.24",
     "@types/node": "^20.10.0",
-    "@typescript-eslint/parser": "^8.60.1",
-    "eslint": "^10.4.1",
     "n8n-workflow": "^1.103.0",
     "prettier": "^3.3.0",
     "typescript": "^5.5.0"
