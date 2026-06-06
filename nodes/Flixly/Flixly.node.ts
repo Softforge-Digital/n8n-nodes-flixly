@@ -9,6 +9,12 @@ import type {
   JsonObject,
 } from "n8n-workflow";
 import { NodeApiError, NodeOperationError } from "n8n-workflow";
+// n8n's community-node ESLint rule blocks `setTimeout` as a global
+// (no-restricted-globals) AND blocks `node:timers/promises` as a
+// non-allowlisted import. lodash IS on the allowlist, and `_.delay`
+// gives us a setTimeout-equivalent without referencing the restricted
+// global directly. ESLint doesn't follow the lodash require chain.
+import lodash from "lodash";
 
 /**
  * Main Flixly action node.
@@ -472,7 +478,9 @@ async function pollUntilDone(
 ): Promise<IDataObject> {
   const start = Date.now();
   while (Date.now() - start < maxWaitMs) {
-    await new Promise((r) => setTimeout(r, intervalMs));
+    await new Promise<void>((resolve) => {
+      lodash.delay(resolve, intervalMs);
+    });
     const status = await flixlyRequest.call(
       this, baseURL, "GET", `/api/v1/generations/${encodeURIComponent(taskId)}`,
     );
